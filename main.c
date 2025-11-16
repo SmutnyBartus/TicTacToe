@@ -16,22 +16,22 @@ void DrawLineHori(int y, Color color){
     DrawLineEx((Vector2){OFFSET, y + OFFSET}, (Vector2){300 + OFFSET, y + OFFSET}, 3.0, color);
 }
 
-void DrawBoard(){
+void DrawBoard(Color color){
     ClearBackground(RAYWHITE);
-    DrawLineVert(100, BLACK);
-    DrawLineVert(200, BLACK);
-    DrawLineHori(100, BLACK);
-    DrawLineHori(200, BLACK);
+    DrawLineVert(100, color);
+    DrawLineVert(200, color);
+    DrawLineHori(100, color);
+    DrawLineHori(200, color);
 }
 
-void DrawChars(char board[3][3]){
+void DrawChars(char board[3][3], Color x, Color y){
     for(int i = 0; i < 3; i++){
         for(int j = 0 ; j < 3; j++){
             if(board[i][j] == 'O')
-                DrawRing((Vector2){i*100 + OFFSET + 50, j*100 + OFFSET + 50}, 40, 44, 0, 360, 100, BLUE);
+                DrawRing((Vector2){i*100 + OFFSET + 50, j*100 + OFFSET + 50}, 40, 44, 0, 360, 100, x);
             if(board[i][j] == 'X'){
-                DrawLineEx((Vector2){i * 100 + OFFSET + 10, j * 100 + OFFSET + 10}, (Vector2){90 + i * 100 + OFFSET, 90 + j * 100 + OFFSET}, 3.0, RED);
-                DrawLineEx((Vector2){i * 100 + OFFSET + 10, 90 + j * 100 + OFFSET}, (Vector2){90 + i * 100 + OFFSET, j * 100 + OFFSET + 10}, 3.0, RED);
+                DrawLineEx((Vector2){i * 100 + OFFSET + 10, j * 100 + OFFSET + 10}, (Vector2){90 + i * 100 + OFFSET, 90 + j * 100 + OFFSET}, 3.0, y);
+                DrawLineEx((Vector2){i * 100 + OFFSET + 10, 90 + j * 100 + OFFSET}, (Vector2){90 + i * 100 + OFFSET, j * 100 + OFFSET + 10}, 3.0, y);
             }
         }
     }
@@ -69,7 +69,6 @@ void DrawWinLine(int WinLinerNr){
 }
 
 void DrawWinMsg(int xTurn){
-    //DrawRectangle(OFFSET, OFFSET, WIDTH - OFFSET, HEIGHT - OFFSET, WHITE);
     if(xTurn){
         DrawLineEx((Vector2){WIDTH / 2 - 34, 100 - 34}, (Vector2){WIDTH / 2 + 34, 100 + 34}, 7.0, BLACK);
         DrawLineEx((Vector2){WIDTH / 2 - 34, 100 + 34}, (Vector2){WIDTH / 2 + 34, 100 - 34}, 7.0, BLACK);  
@@ -85,12 +84,14 @@ void Display(char board[3][3], int WinLinerNr, int xTurn){
     BeginDrawing();
     
     ClearBackground(RAYWHITE);
-    DrawBoard();
-    DrawChars(board);
+
+    DrawBoard(BLACK);
+
+    DrawChars(board, RED, BLUE);
 
     if(WinLinerNr != 0){
+        DrawChars(board, GRAY, GRAY);
         DrawWinLine(WinLinerNr);
-        //DrawWinMsg(xTurn);
     }
 
     EndDrawing();
@@ -131,7 +132,7 @@ int Win(char board[3][3]){
     return 0;
 }
 
-void InitGame(char board[3][3], int* x, int* y, int* xTurn){
+void InitGame(char board[3][3], int* x, int* y, int* xTurn, int* WinLineNr){
     InitWindow(WIDTH, HEIGHT, "TicTacToe");
 
     SetWindowPosition(3000, 0);
@@ -144,6 +145,7 @@ void InitGame(char board[3][3], int* x, int* y, int* xTurn){
     *x = -1;
     *y = -1;
     *xTurn = 1;
+    *WinLineNr = 0;
 
     for(int i = 0; i < 3; i++){
         for(int j = 0; j < 3; j++)
@@ -153,11 +155,13 @@ void InitGame(char board[3][3], int* x, int* y, int* xTurn){
 }
 
 void Input(char board[3][3], int* x, int* y, int* xTurn){
+    *x = -1;
+    *y = -1;
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
         *x = (GetMouseX() - OFFSET) / 100;
         *y = (GetMouseY() - OFFSET) / 100;
         
-        if(((*x) < 0 && (*x) > 2 && (*y) < 0 && (*y) > 2) || (!isFree(board[*x][*y]))){
+        if(((*x) < 0 || (*x) > 2 || (*y) < 0 || (*y) > 2) || (!isFree(board[*x][*y]))){
             // Field is either taken or out of bounds
             *x = -1;
             *y = -1;
@@ -168,18 +172,24 @@ void Input(char board[3][3], int* x, int* y, int* xTurn){
 }
 
 void Logic(char board[3][3], int x, int y, int xTurn, int *WinLineNr){
-    if(x != -1 && y != -1)
+    static int moves = 0;
+    if(x != -1 && y != -1){
         board[x][y] = xTurn ? 'X' : 'O';
+        moves++;
+    }
 
     *WinLineNr = Win(board);
+
+    if(*WinLineNr == 0 && moves >= 9){
+        *WinLineNr = 9;
+    }
 }
 
 int main() {    
     int x, y, xTurn;
-    int WinLineNr = 0; // Also a gameover variable
-    int GameOver = 1;
+    int WinLineNr; // Also a gameover variable
     char board[3][3];
-    InitGame(board, &x, &y, &xTurn);
+    InitGame(board, &x, &y, &xTurn, &WinLineNr);
 
     while (!WindowShouldClose() && !WinLineNr) {
 
