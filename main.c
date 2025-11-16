@@ -69,7 +69,7 @@ void DrawWinLine(int WinLinerNr){
 }
 
 void DrawWinMsg(int xTurn){
-    if(xTurn){
+    if(!xTurn){
         DrawLineEx((Vector2){WIDTH / 2 - 34, 100 - 34}, (Vector2){WIDTH / 2 + 34, 100 + 34}, 7.0, BLACK);
         DrawLineEx((Vector2){WIDTH / 2 - 34, 100 + 34}, (Vector2){WIDTH / 2 + 34, 100 - 34}, 7.0, BLACK);  
     }
@@ -92,12 +92,14 @@ void Display(char board[3][3], int WinLinerNr, int xTurn){
     if(WinLinerNr != 0){
         DrawChars(board, GRAY, GRAY);
         DrawWinLine(WinLinerNr);
+        DrawWinMsg(xTurn);
     }
 
     EndDrawing();
 
-    if(WinLinerNr != 0)
+    if(WinLinerNr != 0){
         WaitTime(2.0);
+    }
 }
 
 int isFree(char c){
@@ -154,7 +156,7 @@ void InitGame(char board[3][3], int* x, int* y, int* xTurn, int* WinLineNr){
     
 }
 
-void Input(char board[3][3], int* x, int* y, int* xTurn){
+void Input(char board[3][3], int* x, int* y){
     *x = -1;
     *y = -1;
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
@@ -167,14 +169,14 @@ void Input(char board[3][3], int* x, int* y, int* xTurn){
             *y = -1;
             return;
         }
-        (*xTurn) = !(*xTurn);
     }
 }
 
-void Logic(char board[3][3], int x, int y, int xTurn, int *WinLineNr){
+void Logic(char board[3][3], int x, int y, int* xTurn, int *WinLineNr){
     static int moves = 0;
     if(x != -1 && y != -1){
-        board[x][y] = xTurn ? 'X' : 'O';
+        board[x][y] = *xTurn ? 'X' : 'O';
+        (*xTurn) = !(*xTurn);
         moves++;
     }
 
@@ -193,9 +195,9 @@ int main() {
 
     while (!WindowShouldClose() && !WinLineNr) {
 
-        Input(board, &x, &y, &xTurn);
+        Input(board, &x, &y);
         
-        Logic(board, x, y, xTurn, &WinLineNr);
+        Logic(board, x, y, &xTurn, &WinLineNr);
 
         Display(board, WinLineNr, xTurn);
     }
