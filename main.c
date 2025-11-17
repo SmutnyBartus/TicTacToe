@@ -5,8 +5,7 @@
 #define HEIGHT 350
 
 //TODO: 
-// 3. Add Menu and win interface
-// 3. AutoSolver
+// 2. AutoSolver
 
 void DrawLineVert(int x, Color color){
     DrawLineEx((Vector2){x + OFFSET, 0 + OFFSET}, (Vector2){x + OFFSET, 300 + OFFSET}, 3.0, color);
@@ -68,22 +67,26 @@ void DrawWinLine(int WinLinerNr){
     }
 }
 
-void DrawWinMsg(int xTurn){
+void DrawWinMsg(int xTurn, int WinLinerNr){
+    if(WinLinerNr == 9){
+        DrawText("DRAW", (WIDTH - MeasureText("DRAW", 100))/2, 125, 100, BLACK);
+        return;
+    }
     if(!xTurn){
-        DrawLineEx((Vector2){WIDTH / 2 - 34, 100 - 34}, (Vector2){WIDTH / 2 + 34, 100 + 34}, 7.0, BLACK);
-        DrawLineEx((Vector2){WIDTH / 2 - 34, 100 + 34}, (Vector2){WIDTH / 2 + 34, 100 - 34}, 7.0, BLACK);  
+        DrawLineEx((Vector2){WIDTH / 2 - 35, 50 - 35}, (Vector2){WIDTH / 2 + 35, 50 + 35}, 10.0, BLACK);
+        DrawLineEx((Vector2){WIDTH / 2 - 35, 50 + 35}, (Vector2){WIDTH / 2 + 35, 50 - 35}, 10.0, BLACK);  
     }
     else{
-        DrawRing((Vector2){WIDTH/2, 100}, 27, 34, 0, 360, 100, BLACK);
+        DrawRing((Vector2){WIDTH/2, 60}, 30, 35, 0, 360, 100, BLACK);
     }
 
-    DrawText("WYGRYWA", (WIDTH - MeasureText("WYGRYWA", 65))/2, 200, 65, BLACK);
+    DrawText("WON", (WIDTH - MeasureText("WON", 100))/2, 125, 100, BLACK);
 }
 
 void Display(char board[3][3], int WinLinerNr, int xTurn){
     BeginDrawing();
     
-    ClearBackground(RAYWHITE);
+    ClearBackground(WHITE);
 
     DrawBoard(BLACK);
 
@@ -92,13 +95,13 @@ void Display(char board[3][3], int WinLinerNr, int xTurn){
     if(WinLinerNr != 0){
         DrawChars(board, GRAY, GRAY);
         DrawWinLine(WinLinerNr);
-        DrawWinMsg(xTurn);
+        //DrawWinMsg(xTurn, WinLinerNr);
     }
 
     EndDrawing();
 
     if(WinLinerNr != 0){
-        WaitTime(2.0);
+        WaitTime(1);
     }
 }
 
@@ -134,20 +137,12 @@ int Win(char board[3][3]){
     return 0;
 }
 
-void InitGame(char board[3][3], int* x, int* y, int* xTurn, int* WinLineNr){
-    InitWindow(WIDTH, HEIGHT, "TicTacToe");
-
-    SetWindowPosition(3000, 0);
-    ShowCursor();
-    EnableCursor();
-    EnableEventWaiting();
-
-    SetTargetFPS(60);
-
+void InitGame(char board[3][3], int* x, int* y, int* xTurn, int* WinLineNr, int* moves){
     *x = -1;
     *y = -1;
     *xTurn = 1;
     *WinLineNr = 0;
+    *moves = 0;
 
     for(int i = 0; i < 3; i++){
         for(int j = 0; j < 3; j++)
@@ -172,34 +167,147 @@ void Input(char board[3][3], int* x, int* y){
     }
 }
 
-void Logic(char board[3][3], int x, int y, int* xTurn, int *WinLineNr){
-    static int moves = 0;
+void Logic(char board[3][3], int x, int y, int* xTurn, int *WinLineNr, int* moves){
     if(x != -1 && y != -1){
         board[x][y] = *xTurn ? 'X' : 'O';
         (*xTurn) = !(*xTurn);
-        moves++;
+        (*moves)++;
     }
 
     *WinLineNr = Win(board);
 
-    if(*WinLineNr == 0 && moves >= 9){
+    if(*WinLineNr == 0 && (*moves) >= 9){
         *WinLineNr = 9;
     }
 }
 
-int main() {    
-    int x, y, xTurn;
-    int WinLineNr; // Also a gameover variable
+void StartGame(){
+    int x, y, xTurn, moves, WinLineNr; // WinLineNr is also a gameover variable {0 ~ still playing, 2 - 8 ~ one of players one, 9 ~ draw}
     char board[3][3];
-    InitGame(board, &x, &y, &xTurn, &WinLineNr);
+    InitGame(board, &x, &y, &xTurn, &WinLineNr, &moves);
 
     while (!WindowShouldClose() && !WinLineNr) {
 
         Input(board, &x, &y);
         
-        Logic(board, x, y, &xTurn, &WinLineNr);
+        Logic(board, x, y, &xTurn, &WinLineNr, &moves);
 
         Display(board, WinLineNr, xTurn);
+    }
+}
+
+void StartWindow(){
+    InitWindow(WIDTH, HEIGHT, "TicTacToe");
+
+    SetWindowPosition(3000, 0);
+    ShowCursor();
+    EnableCursor();
+    EnableEventWaiting();
+
+    SetTargetFPS(60);
+}
+
+int ShowMainMenu(){
+    while(!WindowShouldClose()){
+        ClearBackground(WHITE);
+        BeginDrawing();
+
+        //Hightlighjt hovered button
+        Color colorPlay = GRAY;
+        Color colorExit = GRAY;
+        int y = (GetMouseY());
+        int x = (GetMouseX());
+        SetMouseCursor(MOUSE_CURSOR_DEFAULT); 
+        if(x >= (WIDTH - MeasureText("PLAY", 50))/2 - 20 && x <= (WIDTH - MeasureText("PLAY", 50))/2 - 20 + MeasureText("PLAY", 50) + 40){
+            if(y >= 75 + OFFSET - 10 && y <= 75 + OFFSET - 10 + 65){
+                SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
+                colorPlay = DARKGRAY;
+            }
+            if(y >= 175 + OFFSET - 10 && y <= 175 + OFFSET - 10 + 65){
+                SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
+                colorExit = DARKGRAY;
+            }
+        }
+
+
+        //Draw buttons and strings inside them
+        DrawRectangle((WIDTH - MeasureText("PLAY", 50))/2 - 20, 75 + OFFSET - 10, MeasureText("PLAY", 50) + 40, 65, colorPlay);
+        DrawText("PLAY", (WIDTH - MeasureText("PLAY", 50))/2, 75 + OFFSET, 50, BLACK);
+
+        DrawRectangle((WIDTH - MeasureText("PLAY", 50))/2 - 20, 175 + OFFSET - 10, MeasureText("PLAY", 50) + 40, 65, colorExit);
+        DrawText("EXIT", (WIDTH - MeasureText("EXIT", 50))/2, 175 + OFFSET, 50, BLACK);
+
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            EndDrawing();
+            int y = (GetMouseY());
+            int x = (GetMouseX());
+            if(x >= (WIDTH - MeasureText("PLAY", 50))/2 - 20 && x <= (WIDTH - MeasureText("PLAY", 50))/2 - 20 + MeasureText("PLAY", 50) + 40){
+                if(y >= 75 + OFFSET - 10 && y <= 75 + OFFSET - 10 + 65)
+                    return 1;
+                if(y >= 175 + OFFSET - 10 && y <= 175 + OFFSET - 10 + 65)
+                    return 0;
+            }
+        }
+        EndDrawing();
+    }
+}
+
+int ShowEndScreen(){
+        while(!WindowShouldClose()){
+        ClearBackground(WHITE);
+        BeginDrawing();
+
+        //Hightlighjt hovered button
+        Color colorPlay = GRAY;
+        Color colorExit = GRAY;
+        int y = (GetMouseY());
+        int x = (GetMouseX());
+        SetMouseCursor(MOUSE_CURSOR_DEFAULT); 
+        if(x >= (WIDTH - MeasureText("PLAY AGAIN", 50))/2 - 20 && x <= (WIDTH - MeasureText("PLAY AGAIN", 50))/2 - 20 + MeasureText("PLAY AGAIN", 50) + 40){
+            if(y >= 75 + OFFSET - 10 && y <= 75 + OFFSET - 10 + 65){
+                SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
+                colorPlay = DARKGRAY;
+            }
+            if(y >= 175 + OFFSET - 10 && y <= 175 + OFFSET - 10 + 65){
+                SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
+                colorExit = DARKGRAY;
+            }
+        }
+
+
+        //Draw buttons and strings inside them
+        DrawRectangle((WIDTH - MeasureText("PLAY AGAIN", 50))/2 - 10, 75 + OFFSET - 10, MeasureText("PLAY AGAIN", 50) + 20, 65, colorPlay);
+        DrawText("PLAY AGAIN", (WIDTH - MeasureText("PLAY AGAIN", 50))/2, 75 + OFFSET, 50, BLACK);
+
+        DrawRectangle((WIDTH - MeasureText("PLAY AGAIN", 50))/2 - 10, 175 + OFFSET - 10, MeasureText("PLAY AGAIN", 50) + 20, 65, colorExit);
+        DrawText("EXIT", (WIDTH - MeasureText("EXIT", 50))/2, 175 + OFFSET, 50, BLACK);
+
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            EndDrawing();
+            int y = (GetMouseY());
+            int x = (GetMouseX());
+            if(x >= (WIDTH - MeasureText("PLAY AGAIN", 50))/2 - 20 && x <= (WIDTH - MeasureText("PLAY AGAIN", 50))/2 - 20 + MeasureText("PLAY AGAIN", 50) + 40){
+                if(y >= 75 + OFFSET - 10 && y <= 75 + OFFSET - 10 + 65)
+                    return 1;
+                if(y >= 175 + OFFSET - 10 && y <= 175 + OFFSET - 10 + 65)
+                    return 0;
+            }
+        }
+        EndDrawing();
+    }
+}
+
+void RunGameLoop(){
+    do{
+        StartGame();
+    }while(ShowEndScreen());
+}
+
+int main() {   
+    StartWindow(); 
+
+    if(ShowMainMenu()){
+        RunGameLoop();
     }
 
     CloseWindow();
