@@ -5,20 +5,12 @@
             "name": "Debug Tic-Tac-Toe",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/main",   // compiled executable
-            "args": [],                             // add command-line args if needed
-            "stopAtEntry": false,                   // start normally, not at main()
+            "program": "${workspaceFolder}/build/main",
+            "args": [],
             "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,                // needed for Raylib window output
-            "MIMode": "gdb",                        // use "lldb" on macOS if preferred
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ]
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "preLaunchTask": "build"
         }
     ]
 }

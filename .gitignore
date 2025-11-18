@@ -1,5 +1,7 @@
 # Prerequisites
 *.d
+*.jason
+*.vscode
 
 # Object files
 *.o

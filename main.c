@@ -1,11 +1,36 @@
 #include "raylib.h"
+#include <stdio.h>
+#include <limits.h>
+
 #define OFFSET 25
 
 #define WIDTH 350
 #define HEIGHT 350
 
-//TODO: 
-// 2. AutoSolver
+//TODO:
+// 1. Refactor the code
+// 2. Upgrade menu
+// 3. Add dificulty levels to bots
+
+
+enum Eval {
+    Xwin = 10,
+    Owin = -10,
+    NoWinner = 0
+};
+
+enum GameState {
+    InProgress,
+    WinHorizontal1,
+    WinHorizontal2,
+    WinHorizontal3,
+    WinVertical1,
+    WinVertical2,
+    WinVertical3,
+    WinDiagTopBot,
+    WinDiagBotTop,
+    Draw
+};
 
 void DrawLineVert(int x, Color color){
     DrawLineEx((Vector2){x + OFFSET, 0 + OFFSET}, (Vector2){x + OFFSET, 300 + OFFSET}, 3.0, color);
@@ -36,30 +61,30 @@ void DrawChars(char board[3][3], Color x, Color y){
     }
 }
 
-void DrawWinLine(int WinLinerNr){
-    switch (WinLinerNr){
-        case 1:
+void DrawWinLine(enum GameState GameState){
+    switch (GameState){
+        case WinHorizontal1:
             DrawLineHori(50, GREEN);
             break;
-        case 2:
+        case WinHorizontal2:
             DrawLineHori(150, GREEN);
             break;
-        case 3:
+        case WinHorizontal3:
             DrawLineHori(250, GREEN);
             break;
-        case 4:
+        case WinVertical1:
             DrawLineVert(50, GREEN);
             break;
-        case 5:
+        case WinVertical2:
             DrawLineVert(150, GREEN);
             break;
-        case 6:
+        case WinVertical3:
             DrawLineVert(250, GREEN);
             break;
-        case 7:
+        case WinDiagTopBot:
             DrawLineEx((Vector2){0 + OFFSET, 0 + OFFSET}, (Vector2){300 + OFFSET, 300 + OFFSET}, 3.0, GREEN);
             break;
-        case 8:
+        case WinDiagBotTop:
             DrawLineEx((Vector2){0 + OFFSET, 300 + OFFSET}, (Vector2){300 + OFFSET, 0 + OFFSET}, 3.0, GREEN);
             break;
         default:
@@ -67,23 +92,7 @@ void DrawWinLine(int WinLinerNr){
     }
 }
 
-void DrawWinMsg(int xTurn, int WinLinerNr){
-    if(WinLinerNr == 9){
-        DrawText("DRAW", (WIDTH - MeasureText("DRAW", 100))/2, 125, 100, BLACK);
-        return;
-    }
-    if(!xTurn){
-        DrawLineEx((Vector2){WIDTH / 2 - 35, 50 - 35}, (Vector2){WIDTH / 2 + 35, 50 + 35}, 10.0, BLACK);
-        DrawLineEx((Vector2){WIDTH / 2 - 35, 50 + 35}, (Vector2){WIDTH / 2 + 35, 50 - 35}, 10.0, BLACK);  
-    }
-    else{
-        DrawRing((Vector2){WIDTH/2, 60}, 30, 35, 0, 360, 100, BLACK);
-    }
-
-    DrawText("WON", (WIDTH - MeasureText("WON", 100))/2, 125, 100, BLACK);
-}
-
-void Display(char board[3][3], int WinLinerNr, int xTurn){
+void Display(char board[3][3], enum GameState GameState, int xTurn){
     BeginDrawing();
     
     ClearBackground(WHITE);
@@ -92,15 +101,14 @@ void Display(char board[3][3], int WinLinerNr, int xTurn){
 
     DrawChars(board, RED, BLUE);
 
-    if(WinLinerNr != 0){
+    if(GameState != InProgress){
         DrawChars(board, GRAY, GRAY);
-        DrawWinLine(WinLinerNr);
-        //DrawWinMsg(xTurn, WinLinerNr);
+        DrawWinLine(GameState);
     }
 
     EndDrawing();
 
-    if(WinLinerNr != 0){
+    if(GameState != InProgress){
         WaitTime(1);
     }
 }
@@ -109,12 +117,13 @@ int isFree(char c){
     return c == 0;
 }
 
-int Win(char board[3][3]){
+enum GameState CheckGameState(char board[3][3]){
     for(int i = 0; i < 3; i++){
         //Horizontal check
         if(board[0][i] != 0
         && board[0][i] == board[1][i]
         && board[1][i] == board[2][i])
+
             return i + 1;
         //Vertical check
         if(board[i][0] != 0
@@ -123,7 +132,7 @@ int Win(char board[3][3]){
             return i + 4;
     }
 
-    //Diagonal check
+    //Diagonal checks
     if(board[0][0] == board[1][1]
     && board[1][1] == board[2][2]
     && board[1][1] != 0)
@@ -137,12 +146,12 @@ int Win(char board[3][3]){
     return 0;
 }
 
-void InitGame(char board[3][3], int* x, int* y, int* xTurn, int* WinLineNr, int* moves){
+void InitGame(char board[3][3], int* x, int* y, int* xTurn, enum GameState* GameState, int* Moves){
     *x = -1;
     *y = -1;
     *xTurn = 1;
-    *WinLineNr = 0;
-    *moves = 0;
+    *GameState = InProgress;
+    *Moves = 0;
 
     for(int i = 0; i < 3; i++){
         for(int j = 0; j < 3; j++)
@@ -167,32 +176,17 @@ void Input(char board[3][3], int* x, int* y){
     }
 }
 
-void Logic(char board[3][3], int x, int y, int* xTurn, int *WinLineNr, int* moves){
+void Logic(char board[3][3], int x, int y, int* xTurn, enum GameState* GameState, int* Moves){
     if(x != -1 && y != -1){
         board[x][y] = *xTurn ? 'X' : 'O';
         (*xTurn) = !(*xTurn);
-        (*moves)++;
+        (*Moves)++;
     }
 
-    *WinLineNr = Win(board);
+    *GameState = CheckGameState(board);
 
-    if(*WinLineNr == 0 && (*moves) >= 9){
-        *WinLineNr = 9;
-    }
-}
-
-void StartGame(){
-    int x, y, xTurn, moves, WinLineNr; // WinLineNr is also a gameover variable {0 ~ still playing, 2 - 8 ~ one of players one, 9 ~ draw}
-    char board[3][3];
-    InitGame(board, &x, &y, &xTurn, &WinLineNr, &moves);
-
-    while (!WindowShouldClose() && !WinLineNr) {
-
-        Input(board, &x, &y);
-        
-        Logic(board, x, y, &xTurn, &WinLineNr, &moves);
-
-        Display(board, WinLineNr, xTurn);
+    if(*GameState == InProgress && (*Moves) >= 9){
+        *GameState = 9;
     }
 }
 
@@ -214,16 +208,22 @@ int ShowMainMenu(){
 
         //Hightlighjt hovered button
         Color colorPlay = GRAY;
+        Color colorPlayBot = GRAY;
         Color colorExit = GRAY;
         int y = (GetMouseY());
         int x = (GetMouseX());
         SetMouseCursor(MOUSE_CURSOR_DEFAULT); 
-        if(x >= (WIDTH - MeasureText("PLAY", 50))/2 - 20 && x <= (WIDTH - MeasureText("PLAY", 50))/2 - 20 + MeasureText("PLAY", 50) + 40){
-            if(y >= 75 + OFFSET - 10 && y <= 75 + OFFSET - 10 + 65){
+
+        if(x >= (WIDTH - MeasureText("PLAY A BOT", 50))/2 - 20 && x <= (WIDTH - MeasureText("PLAY A BOT", 50))/2 - 20 + MeasureText("PLAY A BOT", 50) + 40){
+            if(y >= 25 + OFFSET - 10 && y <= 25 + OFFSET - 10 + 65){
                 SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
                 colorPlay = DARKGRAY;
             }
-            if(y >= 175 + OFFSET - 10 && y <= 175 + OFFSET - 10 + 65){
+            if(y >= 125 + OFFSET - 10 && y <= 125 + OFFSET - 10 + 65){
+                SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
+                colorPlayBot = DARKGRAY;
+            }
+            if(y >= 225 + OFFSET - 10 && y <= 225 + OFFSET - 10 + 65){
                 SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
                 colorExit = DARKGRAY;
             }
@@ -231,21 +231,29 @@ int ShowMainMenu(){
 
 
         //Draw buttons and strings inside them
-        DrawRectangle((WIDTH - MeasureText("PLAY", 50))/2 - 20, 75 + OFFSET - 10, MeasureText("PLAY", 50) + 40, 65, colorPlay);
-        DrawText("PLAY", (WIDTH - MeasureText("PLAY", 50))/2, 75 + OFFSET, 50, BLACK);
+        DrawRectangle((WIDTH - MeasureText("PLAY A BOT", 50))/2 - 10, 25 + OFFSET - 10, MeasureText("PLAY A BOT", 50) + 20, 65, colorPlay);
+        DrawText("PLAY", (WIDTH - MeasureText("PLAY", 50))/2, 25 + OFFSET, 50, BLACK);
 
-        DrawRectangle((WIDTH - MeasureText("PLAY", 50))/2 - 20, 175 + OFFSET - 10, MeasureText("PLAY", 50) + 40, 65, colorExit);
-        DrawText("EXIT", (WIDTH - MeasureText("EXIT", 50))/2, 175 + OFFSET, 50, BLACK);
+        DrawRectangle((WIDTH - MeasureText("PLAY A BOT", 50))/2 - 10, 125 + OFFSET - 10, MeasureText("PLAY A BOT", 50) + 20, 65, colorPlayBot);
+        DrawText("PLAY A BOT", (WIDTH - MeasureText("PLAY A BOT", 50))/2, 125 + OFFSET, 50, BLACK);
+
+        DrawRectangle((WIDTH - MeasureText("PLAY A BOT", 50))/2 - 10, 225 + OFFSET - 10, MeasureText("PLAY A BOT", 50) + 20, 65, colorExit);
+        DrawText("EXIT", (WIDTH - MeasureText("EXIT", 50))/2, 225 + OFFSET, 50, BLACK);
 
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             EndDrawing();
             int y = (GetMouseY());
             int x = (GetMouseX());
-            if(x >= (WIDTH - MeasureText("PLAY", 50))/2 - 20 && x <= (WIDTH - MeasureText("PLAY", 50))/2 - 20 + MeasureText("PLAY", 50) + 40){
-                if(y >= 75 + OFFSET - 10 && y <= 75 + OFFSET - 10 + 65)
+            if(x >= (WIDTH - MeasureText("PLAY A BOT", 50))/2 - 20 && x <= (WIDTH - MeasureText("PLAY A BOT", 50))/2 - 20 + MeasureText("PLAY A BOT", 50) + 40){
+                if(y >= 25 + OFFSET - 10 && y <= 25 + OFFSET - 10 + 65){
                     return 1;
-                if(y >= 175 + OFFSET - 10 && y <= 175 + OFFSET - 10 + 65)
+                }
+                if(y >= 125 + OFFSET - 10 && y <= 125 + OFFSET - 10 + 65){
+                    return 2;
+                }
+                if(y >= 225 + OFFSET - 10 && y <= 225 + OFFSET - 10 + 65){
                     return 0;
+                }
             }
         }
         EndDrawing();
@@ -297,17 +305,136 @@ int ShowEndScreen(){
     }
 }
 
+enum Eval EvaluateBoard(char board[3][3], int Moves, int xTurn){
+    enum GameState CurrentGameState = CheckGameState(board);
+    if(CurrentGameState){
+        if(!xTurn)
+            return Xwin;
+        else
+            return Owin;
+    }
+    return NoWinner; // For now it always goes max depth, when it evaluates its always after all Moves if neither won its a draw
+}
+
+
+int MinMax(int depth, char board[3][3], int Moves, int xTurn, int* x1, int* y1){
+    enum Eval score = EvaluateBoard(board, Moves, xTurn);
+    if(score != NoWinner || depth == 0)
+        return score;
+        
+    int best_move = xTurn ? INT_MIN : INT_MAX;
+    int bestX = -1, bestY = -1;
+
+    if(xTurn){
+        for(int x = 0; x < 3; x++){
+            for(int y = 0; y < 3; y++){
+                if(isFree(board[x][y])){
+                    board[x][y] = 'X';
+                    int current_best = MinMax(depth - 1, board, Moves + 1, !xTurn, NULL, NULL);
+                    board[x][y] = 0;
+                    if(current_best > best_move){
+                        best_move = current_best;
+                        bestX = x;
+                        bestY = y;
+                    }
+                }
+            }
+        }
+    }
+    else{
+        for(int x = 0; x < 3; x++){
+            for(int y = 0; y < 3; y++){
+                if(isFree(board[x][y])){
+
+                    board[x][y] = 'O';
+                    int current_best = MinMax(depth - 1, board, Moves + 1, !xTurn, NULL, NULL);
+                    board[x][y] = 0;
+
+                    if(current_best < best_move){
+                        best_move = current_best;
+                        bestX = x;
+                        bestY = y;
+                    }
+                }
+            }
+        }
+    }
+    if(x1 && y1){ // Set best moves only in the first call of the minmax
+        *x1 = bestX;
+        *y1 = bestY;
+    }
+    return best_move;
+}
+
+void BotMove(char board[3][3], int Moves, int xTurn, int* x, int *y){
+    int BestX = -1;
+    int BestY = -1;
+    MinMax(9 - Moves, board, Moves, xTurn, &BestX, &BestY);
+    *x = BestX;
+    *y = BestY;
+}
+
+void StartBotGame(){
+    int x, y, xTurn, Moves;
+    enum GameState GameState;
+    char board[3][3];
+
+    InitGame(board, &x, &y, &xTurn, &GameState, &Moves);
+
+    while (!WindowShouldClose() && !GameState) {
+        Input(board, &x, &y);
+
+        if(xTurn)
+            BotMove(board, Moves, xTurn, &x, &y);
+
+        Logic(board, x, y, &xTurn, &GameState, &Moves);
+
+        Display(board, GameState, xTurn);
+    }
+}
+
+void StartGame(){
+    int x, y, xTurn, Moves;
+    enum GameState GameState;
+    char board[3][3];
+
+    InitGame(board, &x, &y, &xTurn, &GameState, &Moves);
+
+    while (!WindowShouldClose() && !GameState) {
+
+        Input(board, &x, &y);
+        
+        Logic(board, x, y, &xTurn, &GameState, &Moves);
+
+        Display(board, GameState, xTurn);
+    }
+}
+
+void RunBotGameLoop(){
+    do{
+        StartBotGame();
+    }while(ShowEndScreen());
+}
+
 void RunGameLoop(){
     do{
         StartGame();
     }while(ShowEndScreen());
 }
 
+
 int main() {   
     StartWindow(); 
 
-    if(ShowMainMenu()){
-        RunGameLoop();
+    switch (ShowMainMenu()){
+        case 1:
+            RunGameLoop();
+            break;
+        case 2:
+            RunBotGameLoop();
+            break;
+        case 0:
+            break;
     }
 
     CloseWindow();
