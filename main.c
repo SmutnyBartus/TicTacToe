@@ -7,11 +7,23 @@
 #define WIDTH 350
 #define HEIGHT 350
 
-//TODO:
-// 1. Refactor the code
-// 2. Upgrade menu
-// 3. Add dificulty levels to bots
+#define LINE_WIDTH 3.0
+#define PADDING 10
 
+#define TILE_WIDTH 100
+#define TILE_HEIGHT 100
+
+#define TEXT_SIZE 50
+
+//TODO:
+// 1. Add dificulty levels to bots
+
+enum Choice{
+    EXIT,
+    PLAY,
+    MENU,
+    PLAYBOT
+};
 
 enum Eval {
     Xwin = 10,
@@ -32,31 +44,44 @@ enum GameState {
     Draw
 };
 
-void DrawLineVert(int x, Color color){
-    DrawLineEx((Vector2){x + OFFSET, 0 + OFFSET}, (Vector2){x + OFFSET, 300 + OFFSET}, 3.0, color);
+void DrawLineVertical(float col, Color color){
+    col*=TILE_HEIGHT;
+    DrawLineEx((Vector2){col + OFFSET, OFFSET}, (Vector2){col + OFFSET, 3 * TILE_HEIGHT + OFFSET}, LINE_WIDTH, color);
 }
 
-void DrawLineHori(int y, Color color){
-    DrawLineEx((Vector2){OFFSET, y + OFFSET}, (Vector2){300 + OFFSET, y + OFFSET}, 3.0, color);
+void DrawLineHorizontal(float row, Color color){
+    row*=TILE_WIDTH;
+    DrawLineEx((Vector2){OFFSET, row + OFFSET}, (Vector2){3 * TILE_WIDTH + OFFSET, row + OFFSET}, LINE_WIDTH, color);
+}
+
+void DrawX(int row, int col, Color color){
+    row *= TILE_WIDTH;
+    col *= TILE_HEIGHT;
+    DrawLineEx((Vector2){row + OFFSET + PADDING, col + OFFSET + PADDING}, (Vector2){row + OFFSET + TILE_WIDTH - PADDING, col + OFFSET + TILE_HEIGHT - PADDING}, LINE_WIDTH, color);
+    DrawLineEx((Vector2){row + OFFSET + PADDING, col + OFFSET + TILE_HEIGHT - PADDING}, (Vector2){row + OFFSET + TILE_WIDTH - PADDING, col + OFFSET + PADDING}, LINE_WIDTH, color);
+}
+
+void DrawO(int row, int col, Color Color){
+    row *= TILE_WIDTH;
+    col *= TILE_HEIGHT;
+    DrawRing((Vector2){row + OFFSET + TILE_WIDTH / 2, col + OFFSET + TILE_HEIGHT / 2}, TILE_WIDTH / 2 - PADDING, TILE_WIDTH / 2 - PADDING + LINE_WIDTH, 0, 360, 100, Color);
 }
 
 void DrawBoard(Color color){
-    ClearBackground(RAYWHITE);
-    DrawLineVert(100, color);
-    DrawLineVert(200, color);
-    DrawLineHori(100, color);
-    DrawLineHori(200, color);
+    ClearBackground(WHITE);
+    DrawLineVertical(1, color);
+    DrawLineVertical(2, color);
+    DrawLineHorizontal(1, color);
+    DrawLineHorizontal(2, color);
 }
 
-void DrawChars(char board[3][3], Color x, Color y){
-    for(int i = 0; i < 3; i++){
-        for(int j = 0 ; j < 3; j++){
-            if(board[i][j] == 'O')
-                DrawRing((Vector2){i*100 + OFFSET + 50, j*100 + OFFSET + 50}, 40, 44, 0, 360, 100, x);
-            if(board[i][j] == 'X'){
-                DrawLineEx((Vector2){i * 100 + OFFSET + 10, j * 100 + OFFSET + 10}, (Vector2){90 + i * 100 + OFFSET, 90 + j * 100 + OFFSET}, 3.0, y);
-                DrawLineEx((Vector2){i * 100 + OFFSET + 10, 90 + j * 100 + OFFSET}, (Vector2){90 + i * 100 + OFFSET, j * 100 + OFFSET + 10}, 3.0, y);
-            }
+void DrawChars(char board[3][3], Color colorX, Color colorO){
+    for(int x = 0; x < 3; x++){
+        for(int y = 0 ; y < 3; y++){
+            if(board[x][y] == 'O')
+                DrawO(x, y, colorO);
+            if(board[x][y] == 'X')
+                DrawX(x, y, colorX);
         }
     }
 }
@@ -64,28 +89,28 @@ void DrawChars(char board[3][3], Color x, Color y){
 void DrawWinLine(enum GameState GameState){
     switch (GameState){
         case WinHorizontal1:
-            DrawLineHori(50, GREEN);
+            DrawLineHorizontal(0.5, GREEN);
             break;
         case WinHorizontal2:
-            DrawLineHori(150, GREEN);
+            DrawLineHorizontal(1.5, GREEN);
             break;
         case WinHorizontal3:
-            DrawLineHori(250, GREEN);
+            DrawLineHorizontal(2.5, GREEN);
             break;
         case WinVertical1:
-            DrawLineVert(50, GREEN);
+            DrawLineVertical(0.5, GREEN);
             break;
         case WinVertical2:
-            DrawLineVert(150, GREEN);
+            DrawLineVertical(1.5, GREEN);
             break;
         case WinVertical3:
-            DrawLineVert(250, GREEN);
+            DrawLineVertical(2.5, GREEN);
             break;
         case WinDiagTopBot:
-            DrawLineEx((Vector2){0 + OFFSET, 0 + OFFSET}, (Vector2){300 + OFFSET, 300 + OFFSET}, 3.0, GREEN);
+            DrawLineEx((Vector2){OFFSET, OFFSET}, (Vector2){3 * TILE_WIDTH + OFFSET, 3 * TILE_HEIGHT + OFFSET}, LINE_WIDTH, GREEN);
             break;
         case WinDiagBotTop:
-            DrawLineEx((Vector2){0 + OFFSET, 300 + OFFSET}, (Vector2){300 + OFFSET, 0 + OFFSET}, 3.0, GREEN);
+            DrawLineEx((Vector2){OFFSET, 3 * TILE_HEIGHT + OFFSET}, (Vector2){3 * TILE_WIDTH + OFFSET, OFFSET}, LINE_WIDTH, GREEN);
             break;
         default:
             break;
@@ -99,7 +124,7 @@ void Display(char board[3][3], enum GameState GameState, int xTurn){
 
     DrawBoard(BLACK);
 
-    DrawChars(board, RED, BLUE);
+    DrawChars(board, BLUE, RED);
 
     if(GameState != InProgress){
         DrawChars(board, GRAY, GRAY);
@@ -110,6 +135,160 @@ void Display(char board[3][3], enum GameState GameState, int xTurn){
 
     if(GameState != InProgress){
         WaitTime(1);
+    }
+}
+
+enum Choice ShowMainMenu(){
+    Color colorPlay = GRAY;
+    Color colorPlayBot = GRAY;
+    Color colorExit = GRAY;
+    int x = -1;
+    int y = -1;
+
+
+    //Calculate Button and Text
+    int MaxTextWidth = MeasureText("PLAY A BOT", TEXT_SIZE);
+    int ButtonWidth = MaxTextWidth + 2 * PADDING;
+    int ButtonHeight = TEXT_SIZE + 2 * PADDING;
+
+    int ButtonX = (WIDTH - MaxTextWidth)/2 - PADDING;
+
+    int ButtonPlayY = (HEIGHT - 2 * OFFSET) / 3 - (TEXT_SIZE + 2 * PADDING);
+    int ButtonBotY = 2 * ((HEIGHT - 2 * OFFSET) / 3) - (TEXT_SIZE + 2 * PADDING);
+    int ButtonExitY = HEIGHT - 2 * OFFSET - (TEXT_SIZE + 2 * PADDING);
+
+    while(!WindowShouldClose()){
+        ClearBackground(WHITE);
+        BeginDrawing();
+
+        colorPlay = GRAY;
+        colorPlayBot = GRAY;
+        colorExit = GRAY;
+
+        y = (GetMouseY());
+        x = (GetMouseX());
+        SetMouseCursor(MOUSE_CURSOR_DEFAULT); 
+
+        //Hightlight hovered button
+        if(x >= ButtonX && x <= ButtonX + ButtonWidth){
+            if(y >= ButtonPlayY && y <= ButtonPlayY + ButtonHeight){
+                SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
+                colorPlay = DARKGRAY;
+            }
+            if(y >= ButtonBotY && y <= ButtonBotY + ButtonHeight){
+                SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
+                colorPlayBot = DARKGRAY;
+            }
+            if(y >= ButtonExitY && y <= ButtonExitY + ButtonHeight){
+                SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
+                colorExit = DARKGRAY;
+            }
+        }
+
+        //Draw buttons and strings inside them
+        DrawRectangle(ButtonX, ButtonPlayY, ButtonWidth, ButtonHeight, colorPlay);
+        DrawText("PLAY", ButtonX + (ButtonWidth  - MeasureText("PLAY", TEXT_SIZE)) / 2, ButtonPlayY + (ButtonHeight - TEXT_SIZE) / 2, TEXT_SIZE, BLACK);
+        
+
+        DrawRectangle(ButtonX, ButtonBotY, ButtonWidth, ButtonHeight, colorPlayBot);
+        DrawText("PLAY A BOT", ButtonX + (ButtonWidth  - MeasureText("PLAY A BOT", TEXT_SIZE)) / 2, ButtonBotY + (ButtonHeight - TEXT_SIZE) / 2, TEXT_SIZE, BLACK);
+
+
+        DrawRectangle(ButtonX, ButtonExitY, ButtonWidth, ButtonHeight, colorExit);
+        DrawText("EXIT", ButtonX + (ButtonWidth  - MeasureText("EXIT", TEXT_SIZE)) / 2, ButtonExitY + (ButtonHeight - TEXT_SIZE) / 2, TEXT_SIZE, BLACK);
+
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            EndDrawing();
+            if(x >= ButtonX && x <= ButtonX + ButtonWidth){
+                if(y >= ButtonPlayY && y <= ButtonPlayY + ButtonHeight){
+                    return PLAY;
+                }
+                if(y >= ButtonBotY && y <= ButtonBotY + ButtonHeight){
+                    return PLAYBOT;
+                }
+                if(y >= ButtonExitY && y <= ButtonExitY + ButtonHeight){
+                    return EXIT;
+                }
+            }
+        }
+        EndDrawing();
+    }
+}
+
+enum Choice ShowEndScreen(){
+    Color colorPlay = GRAY;
+    Color colorPlayBot = GRAY;
+    Color colorExit = GRAY;
+    int x = -1;
+    int y = -1;
+
+
+    //Calculate Button and Text
+    int MaxTextWidth = MeasureText("PLAY AGAIN", TEXT_SIZE);
+    int ButtonWidth = MaxTextWidth + 2 * PADDING;
+    int ButtonHeight = TEXT_SIZE + 2 * PADDING;
+
+    int ButtonX = (WIDTH - MaxTextWidth)/2 - PADDING;
+
+    int ButtonPlayY = (HEIGHT - 2 * OFFSET) / 3 - (TEXT_SIZE + 2 * PADDING);
+    int ButtonMenuY = 2 * ((HEIGHT - 2 * OFFSET) / 3) - (TEXT_SIZE + 2 * PADDING);
+    int ButtonExitY = HEIGHT - 2 * OFFSET - (TEXT_SIZE + 2 * PADDING);
+
+    while(!WindowShouldClose()){
+        ClearBackground(WHITE);
+        BeginDrawing();
+
+        colorPlay = GRAY;
+        colorPlayBot = GRAY;
+        colorExit = GRAY;
+
+        y = (GetMouseY());
+        x = (GetMouseX());
+        SetMouseCursor(MOUSE_CURSOR_DEFAULT); 
+
+        //Hightlight hovered button
+        if(x >= ButtonX && x <= ButtonX + ButtonWidth){
+            if(y >= ButtonPlayY && y <= ButtonPlayY + ButtonHeight){
+                SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
+                colorPlay = DARKGRAY;
+            }
+            if(y >= ButtonMenuY && y <= ButtonMenuY + ButtonHeight){
+                SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
+                colorPlayBot = DARKGRAY;
+            }
+            if(y >= ButtonExitY && y <= ButtonExitY + ButtonHeight){
+                SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
+                colorExit = DARKGRAY;
+            }
+        }
+
+        //Draw buttons and strings inside them
+        DrawRectangle(ButtonX, ButtonPlayY, ButtonWidth, ButtonHeight, colorPlay);
+        DrawText("PLAY AGAIN", ButtonX + (ButtonWidth  - MeasureText("PLAY AGAIN", TEXT_SIZE)) / 2, ButtonPlayY + (ButtonHeight - TEXT_SIZE) / 2, TEXT_SIZE, BLACK);
+        
+
+        DrawRectangle(ButtonX, ButtonMenuY, ButtonWidth, ButtonHeight, colorPlayBot);
+        DrawText("MENU", ButtonX + (ButtonWidth  - MeasureText("MENU", TEXT_SIZE)) / 2, ButtonMenuY + (ButtonHeight - TEXT_SIZE) / 2, TEXT_SIZE, BLACK);
+
+
+        DrawRectangle(ButtonX, ButtonExitY, ButtonWidth, ButtonHeight, colorExit);
+        DrawText("EXIT", ButtonX + (ButtonWidth  - MeasureText("EXIT", TEXT_SIZE)) / 2, ButtonExitY + (ButtonHeight - TEXT_SIZE) / 2, TEXT_SIZE, BLACK);
+
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            EndDrawing();
+            if(x >= ButtonX && x <= ButtonX + ButtonWidth){
+                if(y >= ButtonPlayY && y <= ButtonPlayY + ButtonHeight){
+                    return PLAY;
+                }
+                if(y >= ButtonMenuY && y <= ButtonMenuY + ButtonHeight){
+                    return MENU; // FOR NOW BOTH MENU AND EXIT GO TO MENU
+                }
+                if(y >= ButtonExitY && y <= ButtonExitY + ButtonHeight){
+                    return EXIT;
+                }
+            }
+        }
+        EndDrawing();
     }
 }
 
@@ -177,11 +356,13 @@ void Input(char board[3][3], int* x, int* y){
 }
 
 void Logic(char board[3][3], int x, int y, int* xTurn, enum GameState* GameState, int* Moves){
-    if(x != -1 && y != -1){
-        board[x][y] = *xTurn ? 'X' : 'O';
-        (*xTurn) = !(*xTurn);
-        (*Moves)++;
+    if(x == -1 || y == -1){
+        return;
     }
+
+    board[x][y] = *xTurn ? 'X' : 'O';
+    (*xTurn) = !(*xTurn);
+    (*Moves)++;
 
     *GameState = CheckGameState(board);
 
@@ -201,110 +382,6 @@ void StartWindow(){
     SetTargetFPS(60);
 }
 
-int ShowMainMenu(){
-    while(!WindowShouldClose()){
-        ClearBackground(WHITE);
-        BeginDrawing();
-
-        //Hightlighjt hovered button
-        Color colorPlay = GRAY;
-        Color colorPlayBot = GRAY;
-        Color colorExit = GRAY;
-        int y = (GetMouseY());
-        int x = (GetMouseX());
-        SetMouseCursor(MOUSE_CURSOR_DEFAULT); 
-
-        if(x >= (WIDTH - MeasureText("PLAY A BOT", 50))/2 - 20 && x <= (WIDTH - MeasureText("PLAY A BOT", 50))/2 - 20 + MeasureText("PLAY A BOT", 50) + 40){
-            if(y >= 25 + OFFSET - 10 && y <= 25 + OFFSET - 10 + 65){
-                SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
-                colorPlay = DARKGRAY;
-            }
-            if(y >= 125 + OFFSET - 10 && y <= 125 + OFFSET - 10 + 65){
-                SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
-                colorPlayBot = DARKGRAY;
-            }
-            if(y >= 225 + OFFSET - 10 && y <= 225 + OFFSET - 10 + 65){
-                SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
-                colorExit = DARKGRAY;
-            }
-        }
-
-
-        //Draw buttons and strings inside them
-        DrawRectangle((WIDTH - MeasureText("PLAY A BOT", 50))/2 - 10, 25 + OFFSET - 10, MeasureText("PLAY A BOT", 50) + 20, 65, colorPlay);
-        DrawText("PLAY", (WIDTH - MeasureText("PLAY", 50))/2, 25 + OFFSET, 50, BLACK);
-
-        DrawRectangle((WIDTH - MeasureText("PLAY A BOT", 50))/2 - 10, 125 + OFFSET - 10, MeasureText("PLAY A BOT", 50) + 20, 65, colorPlayBot);
-        DrawText("PLAY A BOT", (WIDTH - MeasureText("PLAY A BOT", 50))/2, 125 + OFFSET, 50, BLACK);
-
-        DrawRectangle((WIDTH - MeasureText("PLAY A BOT", 50))/2 - 10, 225 + OFFSET - 10, MeasureText("PLAY A BOT", 50) + 20, 65, colorExit);
-        DrawText("EXIT", (WIDTH - MeasureText("EXIT", 50))/2, 225 + OFFSET, 50, BLACK);
-
-        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-            EndDrawing();
-            int y = (GetMouseY());
-            int x = (GetMouseX());
-            if(x >= (WIDTH - MeasureText("PLAY A BOT", 50))/2 - 20 && x <= (WIDTH - MeasureText("PLAY A BOT", 50))/2 - 20 + MeasureText("PLAY A BOT", 50) + 40){
-                if(y >= 25 + OFFSET - 10 && y <= 25 + OFFSET - 10 + 65){
-                    return 1;
-                }
-                if(y >= 125 + OFFSET - 10 && y <= 125 + OFFSET - 10 + 65){
-                    return 2;
-                }
-                if(y >= 225 + OFFSET - 10 && y <= 225 + OFFSET - 10 + 65){
-                    return 0;
-                }
-            }
-        }
-        EndDrawing();
-    }
-}
-
-int ShowEndScreen(){
-        while(!WindowShouldClose()){
-        ClearBackground(WHITE);
-        BeginDrawing();
-
-        //Hightlighjt hovered button
-        Color colorPlay = GRAY;
-        Color colorExit = GRAY;
-        int y = (GetMouseY());
-        int x = (GetMouseX());
-        SetMouseCursor(MOUSE_CURSOR_DEFAULT); 
-        if(x >= (WIDTH - MeasureText("PLAY AGAIN", 50))/2 - 20 && x <= (WIDTH - MeasureText("PLAY AGAIN", 50))/2 - 20 + MeasureText("PLAY AGAIN", 50) + 40){
-            if(y >= 75 + OFFSET - 10 && y <= 75 + OFFSET - 10 + 65){
-                SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
-                colorPlay = DARKGRAY;
-            }
-            if(y >= 175 + OFFSET - 10 && y <= 175 + OFFSET - 10 + 65){
-                SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
-                colorExit = DARKGRAY;
-            }
-        }
-
-
-        //Draw buttons and strings inside them
-        DrawRectangle((WIDTH - MeasureText("PLAY AGAIN", 50))/2 - 10, 75 + OFFSET - 10, MeasureText("PLAY AGAIN", 50) + 20, 65, colorPlay);
-        DrawText("PLAY AGAIN", (WIDTH - MeasureText("PLAY AGAIN", 50))/2, 75 + OFFSET, 50, BLACK);
-
-        DrawRectangle((WIDTH - MeasureText("PLAY AGAIN", 50))/2 - 10, 175 + OFFSET - 10, MeasureText("PLAY AGAIN", 50) + 20, 65, colorExit);
-        DrawText("EXIT", (WIDTH - MeasureText("EXIT", 50))/2, 175 + OFFSET, 50, BLACK);
-
-        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-            EndDrawing();
-            int y = (GetMouseY());
-            int x = (GetMouseX());
-            if(x >= (WIDTH - MeasureText("PLAY AGAIN", 50))/2 - 20 && x <= (WIDTH - MeasureText("PLAY AGAIN", 50))/2 - 20 + MeasureText("PLAY AGAIN", 50) + 40){
-                if(y >= 75 + OFFSET - 10 && y <= 75 + OFFSET - 10 + 65)
-                    return 1;
-                if(y >= 175 + OFFSET - 10 && y <= 175 + OFFSET - 10 + 65)
-                    return 0;
-            }
-        }
-        EndDrawing();
-    }
-}
-
 enum Eval EvaluateBoard(char board[3][3], int Moves, int xTurn){
     enum GameState CurrentGameState = CheckGameState(board);
     if(CurrentGameState){
@@ -313,9 +390,8 @@ enum Eval EvaluateBoard(char board[3][3], int Moves, int xTurn){
         else
             return Owin;
     }
-    return NoWinner; // For now it always goes max depth, when it evaluates its always after all Moves if neither won its a draw
+    return NoWinner; // for now draw is as good as a game in progress
 }
-
 
 int MinMax(int depth, char board[3][3], int Moves, int xTurn, int* x1, int* y1){
     enum Eval score = EvaluateBoard(board, Moves, xTurn);
@@ -359,7 +435,7 @@ int MinMax(int depth, char board[3][3], int Moves, int xTurn, int* x1, int* y1){
             }
         }
     }
-    if(x1 && y1){ // Set best moves only in the first call of the minmax
+    if(x1 && y1){ // Set best moves, only in the first call of the minmax
         *x1 = bestX;
         *y1 = bestY;
     }
@@ -410,31 +486,52 @@ void StartGame(){
     }
 }
 
-void RunBotGameLoop(){
+enum Choice RunBotGameLoop(){
+    enum Choice choice;
+
     do{
         StartBotGame();
-    }while(ShowEndScreen());
+        choice = ShowEndScreen();
+    }while(choice == PLAY);
+
+    return choice;
 }
 
-void RunGameLoop(){
+enum Choice RunGameLoop(){
+    enum Choice choice;
+
     do{
         StartGame();
-    }while(ShowEndScreen());
+        choice = ShowEndScreen();
+    }while(choice == PLAY);
+
+    return choice;
 }
 
 
 int main() {   
     StartWindow(); 
 
-    switch (ShowMainMenu()){
-        case 1:
-            RunGameLoop();
-            break;
-        case 2:
-            RunBotGameLoop();
-            break;
-        case 0:
-            break;
+    while (!WindowShouldClose())
+    {
+        enum Choice choice = ShowMainMenu();
+        switch(choice){
+            case 0:
+                CloseWindow();
+                return 0;
+            case 1:
+                if(RunGameLoop() == EXIT){
+                    CloseWindow();
+                    return 0;
+                }
+                break;
+            case 2:
+                if(RunBotGameLoop() == EXIT){
+                    CloseWindow();
+                    return 0;
+                }
+                break;
+        }
     }
 
     CloseWindow();
