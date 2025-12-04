@@ -406,7 +406,7 @@ int MinMax(int depth, char board[3][3], int Moves, int xTurn, int* x1, int* y1){
             for(int y = 0; y < 3; y++){
                 if(isFree(board[x][y])){
                     board[x][y] = 'X';
-                    int current_best = MinMax(depth - 1, board, Moves + 1, !xTurn, NULL, NULL);
+                    int current_best = MinMax(depth - 1, board, Moves + 1, !xTurn, NULL, NULL) + depth;
                     board[x][y] = 0;
                     if(current_best > best_move){
                         best_move = current_best;
@@ -423,7 +423,7 @@ int MinMax(int depth, char board[3][3], int Moves, int xTurn, int* x1, int* y1){
                 if(isFree(board[x][y])){
 
                     board[x][y] = 'O';
-                    int current_best = MinMax(depth - 1, board, Moves + 1, !xTurn, NULL, NULL);
+                    int current_best = MinMax(depth - 1, board, Moves + 1, !xTurn, NULL, NULL) - depth;
                     board[x][y] = 0;
 
                     if(current_best < best_move){
@@ -516,16 +516,16 @@ int main() {
     {
         enum Choice choice = ShowMainMenu();
         switch(choice){
-            case 0:
+            case EXIT:
                 CloseWindow();
                 return 0;
-            case 1:
+            case PLAY:
                 if(RunGameLoop() == EXIT){
                     CloseWindow();
                     return 0;
                 }
                 break;
-            case 2:
+            case PLAYBOT:
                 if(RunBotGameLoop() == EXIT){
                     CloseWindow();
                     return 0;
