@@ -14,5 +14,6 @@ Implementacja klasycznej gry **Kółko i Krzyżyk** w języku **C** z wykorzysta
 ```bash
 gcc main.c -o tictactoe -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
 ./tictactoe
+```
 
 [Watch preview](https://github.com/SmutnyBartus/TicTacToe/raw/main/untitled.mp4)
